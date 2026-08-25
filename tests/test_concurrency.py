@@ -9,6 +9,7 @@ Covers the two real bugs this suite exists to prevent:
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -108,3 +109,36 @@ def test_parallel_requests_no_corruption():
             bodies = list(pool.map(call, range(8)))
 
         assert len({b["contact_id"] for b in bodies}) == 8
+
+
+def test_websocket_sheds_partial_when_inference_is_saturated():
+    settings = Settings(max_concurrent_inference=1, max_upload_bytes=1_000_000)
+    app = create_app(settings, engine=FakeEngine())
+    with TestClient(app) as client:
+        client.app.state.vad = lambda x, sr: [(0, len(x))]
+        held = client.app.state.inference_sem.acquire(blocking=False)
+        assert held
+        released = False
+        try:
+            x = make_speech_like(4.0)
+            pcm = (np.clip(x, -1, 1) * 32767).astype("<i2")
+            with client.websocket_connect("/stream") as ws:
+                assert ws.receive_json()["type"] == "ready"
+                chunk_size = 8000
+                for offset in range(0, chunk_size * 5, chunk_size):
+                    ws.send_bytes(pcm[offset : offset + chunk_size].tobytes())
+                client.app.state.inference_sem.release()
+                released = True
+                ws.send_text('{"type":"stop"}')
+                frames = []
+                while True:
+                    frame = ws.receive_json()
+                    frames.append(frame)
+                    if frame["type"] == "final":
+                        break
+        finally:
+            if held and not released:
+                client.app.state.inference_sem.release()
+
+    assert frames[-1]["type"] == "final"
+    assert frames[-1]["dropped_partials"] >= 1

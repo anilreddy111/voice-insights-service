@@ -2,7 +2,7 @@
 
 Real-time caller attribute inference for voice AI agents: given call audio,
 estimate the speaker's **gender** and **age bracket** with calibrated
-confidence, an **audio-quality gate**, and (optionally) **language** — over a
+confidence estimates, an **audio-quality gate**, and (optionally) **language** — over a
 low-latency REST API and a progressive WebSocket stream.
 
 Built for logistics contact centers: noisy warehouses, road noise, compressed
@@ -24,7 +24,7 @@ GET  /metrics        Prometheus
 
 ```bash
 docker compose up --build
-# first build bakes ~500MB of model weights; afterwards it runs offline
+# first build downloads and caches the model weights; afterwards it runs offline
 curl -F "file=@samples/female_like_220hz.wav" http://localhost:8000/analyze
 ```
 
@@ -163,11 +163,12 @@ Ringing, DTMF, hold music and crosstalk poison whole-clip embeddings. Sliding
 3s windows (50% overlap) let the median reject poisoned segments; equal-length
 windows also batch cleanly with no padding/masking complexity.
 
-**Calibration instead of fake precision.**
-Age is a point regression, but we estimate uncertainty from across-window
+**Confidence and uncertainty estimates.**
+Age is a point regression, so we estimate uncertainty from across-window
 dispersion (MAD σ) and report bracket confidence as Gaussian probability mass
-under that spread — so confidence actually means something. Gender confidence
-is the winning class share after a pitch-based tie-break near 50/50.
+under that spread. Gender confidence is derived from the aggregated class
+probabilities, with a pitch-based tie-breaker near 50/50. Gender confidence
+calibration is evaluated separately using ECE on the labeled evaluation set.
 
 **Pitch tie-breaker (hybrid pipeline).**
 Near-ties (Δp < 0.15) get nudged by median F0 (>175Hz → female prior,
