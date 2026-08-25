@@ -26,7 +26,8 @@ ARG MODEL_ID=audeering/wav2vec2-large-robust-6-ft-age-gender
 ENV VIS_MODEL_ID=${MODEL_ID}
 
 # Bake model weights into the image so `docker compose up` needs no network.
-# (~500MB for the 6-layer variant; the 24-layer variant is ~1.3GB.)
+# The 6-layer variant is used by default for the CPU latency target.
+# The 24-layer variant can be selected through the MODEL_ID build argument.
 RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('${MODEL_ID}')"
 
 RUN useradd -m -u 10001 appuser && chown -R appuser /opt/hf /srv/app

@@ -95,14 +95,26 @@ async def stream(ws: WebSocket) -> None:
                 settings.min_speech_seconds,
             )
             if windows:
-                with stage("ws_inference"):
-                    preds = await asyncio.to_thread(ws.app.state.engine.predict_windows, windows)
+                sem = ws.app.state.inference_sem
+                acquired = sem.acquire(blocking=False)
+                if not acquired:
+                    dropped_partials += 1
+                    return
+                try:
+                    with stage("ws_inference"):
+                        preds = await asyncio.to_thread(
+                            ws.app.state.engine.predict_windows,
+                            windows,
+                        )
+                finally:
+                    sem.release()
                 f0 = estimate_f0(voiced, sr)
                 agg = ws.app.state.engine.aggregate(preds, f0_hz=f0)
                 await send_frame(
                     "final" if final else "partial",
                     agg=agg, quality="good", speech_seconds=speech_s,
                 )
+
             elif final:
                 await send_frame("final", agg=None, quality="insufficient",
                                  speech_seconds=speech_s)
