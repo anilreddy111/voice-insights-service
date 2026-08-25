@@ -1,0 +1,27 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        # Fast 6-layer variant by default; swap to the 24-layer variant for max accuracy:
+        # MODEL_ID: audeering/wav2vec2-large-robust-24-ft-age-gender
+        MODEL_ID: audeering/wav2vec2-large-robust-6-ft-age-gender
+    image: voice-insights-service:latest
+    ports:
+      - "8000:8000"
+    environment:
+      VIS_LOG_LEVEL: INFO
+      # Match this to the CPU quota you give the container.
+      VIS_NUM_THREADS: "4"
+      VIS_QUANTIZE_DYNAMIC: "1"
+      VIS_MAX_CONCURRENT_INFERENCE: "2"
+      # Bonus language ID (needs requirements-langid.txt baked into the image):
+      VIS_LANG_ID_ENABLED: "0"
+    # wav2vec2 is compute-bound: cap CPUs to your budget, but know that on
+    # Docker Desktop / macOS VMs tight caps inflate p95 significantly.
+    # Example cap:
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "4"
+    restart: unless-stopped

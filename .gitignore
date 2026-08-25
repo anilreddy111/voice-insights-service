@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+models/
+# synthetic samples are regenerated; keep the small CC-BY LibriSpeech clips
+samples/*.wav
+!samples/librispeech_female_1462.wav
+!samples/librispeech_male_3000.wav
+eval_out/
+.env
+*.egg-info/
+.DS_Store
+.pytest_cache/
+.ruff_cache/

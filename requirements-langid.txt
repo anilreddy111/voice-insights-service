@@ -1,0 +1,5 @@
+# Optional: language identification (bonus feature).
+# Kept separate because SpeechBrain pulls a large dependency tree and the
+# VoxLingua107 weights add ~400MB. Enable with VIS_LANG_ID_ENABLED=1 and
+# pip install -r requirements-langid.txt
+speechbrain>=1.0

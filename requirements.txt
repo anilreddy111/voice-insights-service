@@ -1,0 +1,18 @@
+# Runtime dependencies.
+# torch/torchaudio are installed first (CPU wheels) - see Dockerfile / README.
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.6
+pydantic-settings>=2.2
+numpy>=1.24,<3
+soundfile>=0.12.1
+av>=12  # PyAV: in-process FFmpeg decode for webm/opus/amr/alaw etc.
+torch>=2.2
+torchaudio>=2.2
+# transformers 5.x changed custom-subclass loading internals
+# (all_tied_weights_keys); pinned until audEERING ships a 5.x-compatible head.
+transformers>=4.44,<5
+huggingface_hub>=0.23
+silero-vad>=5.1
+prometheus-client>=0.20
